@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background: #f1f5f9;
+    color: #1e293b;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom playful cartoon styles matching reference images */
+.font-fun {
+  font-family: system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.cartoon-card {
+  background: #ffffff;
+  border: 3px solid #0f172a;
+  border-radius: 24px;
+  box-shadow: 4px 4px 0px #0f172a;
+}
+
+.cartoon-btn {
+  border: 2px solid #0f172a;
+  box-shadow: 2px 2px 0px #0f172a;
+  transition: all 0.15s ease;
+}
+
+.cartoon-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px #0f172a;
+}
+
+.cartoon-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #0f172a;
+}
