@@ -66,18 +66,21 @@ export const App: React.FC = () => {
     };
   }, [gameState?.roomId]); // Only run when roomId changes, not on every timer tick!
 
-  // Auto-reconnect on refresh if room was active
+  // Auto-reconnect on refresh if room was active, but ask user via modal to Resume or End!
   useEffect(() => {
     const savedRoom = sessionStorage.getItem('skribbl_active_room');
     const savedName = localStorage.getItem('skribbl_player_name');
     const userToken = localStorage.getItem('skribbl_user_token');
 
     if (savedRoom && savedName && !gameState) {
+      // First connect back to the room state so the player doesn't lose their turn/score
       socket.emit('join_room', {
         roomId: savedRoom,
         playerName: savedName,
         userToken: userToken || undefined
       });
+      // Immediately display the Resume / Leave modal on reload!
+      setShowLeaveModal(true);
     }
   }, []);
 
