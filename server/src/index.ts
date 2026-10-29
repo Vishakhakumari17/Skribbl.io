@@ -71,11 +71,16 @@ io.on('connection', (socket: Socket) => {
       return;
     }
 
+    // Check if player is reconnecting
+    const isReconnecting = Array.from(room.players.values()).some(
+      p => (userToken && p.userToken === userToken) || p.name.trim().toLowerCase() === (playerName || '').trim().toLowerCase()
+    );
+
     const activePlayersCount = Array.from(room.players.values()).filter(p => !p.isSpectator).length;
     let isSpectator = !!asSpectator;
 
-    // Auto convert to spectator if room is full for active players
-    if (activePlayersCount >= room.settings.maxPlayers) {
+    // Auto convert to spectator if room is full for active players and not reconnecting
+    if (!isReconnecting && activePlayersCount >= room.settings.maxPlayers) {
       isSpectator = true;
     }
 
@@ -90,13 +95,15 @@ io.on('connection', (socket: Socket) => {
       strokes: room.strokes // sync existing canvas for newly joined player
     });
 
-    // Notify room of new player or spectator
-    io.to(room.id).emit('chat_message', {
-      id: Date.now().toString(),
-      text: isSpectator ? `${player.name} is now spectating.` : `${player.name} joined the room!`,
-      type: 'system',
-      timestamp: Date.now()
-    });
+    // Notify room of new player or spectator only if not just reconnecting
+    if (!isReconnecting) {
+      io.to(room.id).emit('chat_message', {
+        id: Date.now().toString(),
+        text: isSpectator ? `${player.name} is now spectating.` : `${player.name} joined the room!`,
+        type: 'system',
+        timestamp: Date.now()
+      });
+    }
 
     room.broadcastState();
   });

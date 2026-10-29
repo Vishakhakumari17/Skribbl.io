@@ -56,6 +56,23 @@ export class Room {
       }
     }
 
+    // Also check if same player name already exists in room to prevent duplicate ghost players on refresh
+    for (const [existingSocketId, existingPlayer] of this.players.entries()) {
+      if (existingPlayer.name.trim().toLowerCase() === name.trim().toLowerCase()) {
+        this.players.delete(existingSocketId);
+        existingPlayer.id = id;
+        if (userToken) existingPlayer.userToken = userToken;
+        if (existingPlayer.isHost) {
+          this.hostId = id;
+        }
+        if (this.drawerId === existingSocketId) {
+          this.drawerId = id;
+        }
+        this.players.set(id, existingPlayer);
+        return existingPlayer;
+      }
+    }
+
     const isFirstPlayer = this.players.size === 0;
     const player: Player = {
       id,

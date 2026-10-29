@@ -45,21 +45,26 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [gameState]);
 
-  // Handle browser back button: push state and intercept to show Resume/End modal
+  // Handle browser back button: only trigger if user actually presses back (NOT automatically)
   useEffect(() => {
-    if (gameState && gameState.phase !== 'GAME_OVER') {
-      window.history.pushState({ inGame: true }, '');
+    if (!gameState || gameState.phase === 'GAME_OVER') return;
 
-      const handlePopState = () => {
-        // Prevent immediate navigation away, show friendly resume/leave modal
-        window.history.pushState({ inGame: true }, '');
-        setShowLeaveModal(true);
-      };
+    // Push state once when entering active game
+    window.history.pushState({ inSkribblGame: true }, '', window.location.href);
 
-      window.addEventListener('popstate', handlePopState);
-      return () => window.removeEventListener('popstate', handlePopState);
-    }
-  }, [gameState]);
+    const handlePopState = (event: PopStateEvent) => {
+      // If user navigated back, push state back to keep them on page & show prompt
+      if (event.state?.inSkribblGame || !event.state) {
+        window.history.pushState({ inSkribblGame: true }, '', window.location.href);
+      }
+      setShowLeaveModal(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [gameState?.roomId]); // Only run when roomId changes, not on every timer tick!
 
   // Auto-reconnect on refresh if room was active
   useEffect(() => {
@@ -182,6 +187,9 @@ export const App: React.FC = () => {
         state={gameState}
         isDrawer={isDrawer}
         secretWord={secretWord}
+        currentPlayerName={currentPlayer?.name}
+        currentPlayerAvatar={currentPlayer?.avatar}
+        onLeaveClick={() => setShowLeaveModal(true)}
       />
 
       {/* Content Area */}
@@ -197,10 +205,10 @@ export const App: React.FC = () => {
             />
           </div>
         ) : (
-          /* Active Game View: Left Toolbar + Big Center Canvas + Right Sidebar */
-          <div className="flex-1 flex overflow-hidden">
+          /* Active Game View: Responsive Layout (Column on Mobile, Row on Desktop) */
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             {/* Center Canvas with Left Tool Controls */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <DrawingCanvas
                 isDrawer={isDrawer && gameState.phase === 'DRAWING'}
                 initialStrokes={initialStrokes}
@@ -208,13 +216,15 @@ export const App: React.FC = () => {
             </div>
 
             {/* Right Sidebar: Word/Hints, Chat/Guess, Players Leaderboard */}
-            <GameSidebar
-              state={gameState}
-              messages={messages}
-              isDrawer={isDrawer}
-              hasGuessed={currentPlayer.hasGuessedCorrectly}
-              currentUserId={socket.id || ''}
-            />
+            <div className="h-64 md:h-full md:w-80 w-full shrink-0 border-t md:border-t-0 md:border-l border-slate-200 overflow-hidden">
+              <GameSidebar
+                state={gameState}
+                messages={messages}
+                isDrawer={isDrawer}
+                hasGuessed={currentPlayer.hasGuessedCorrectly}
+                currentUserId={socket.id || ''}
+              />
+            </div>
           </div>
         )}
       </div>

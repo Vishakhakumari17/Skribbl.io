@@ -217,66 +217,67 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isDrawer, initialS
   };
 
   return (
-    <div className="flex w-full h-full gap-3 p-3">
-      {/* Left Toolbar (Exact match with reference image) */}
-      <div className={`w-36 bg-[#f8fafc] border border-slate-200/90 rounded-2xl p-3 flex flex-col gap-4 shadow-sm shrink-0 ${!isDrawer ? 'opacity-40 pointer-events-none' : ''}`}>
+    <div className="flex flex-col sm:flex-row w-full h-full gap-2 p-2 sm:p-3 overflow-hidden">
+      {/* Left Toolbar (Horizontal on mobile/small screens, Vertical on larger screens) */}
+      <div className={`flex sm:flex-col gap-2 sm:gap-4 p-2 sm:p-3 bg-[#f8fafc] border border-slate-200/90 rounded-2xl shadow-sm shrink-0 overflow-x-auto sm:overflow-visible items-center sm:items-stretch sm:w-36 ${!isDrawer ? 'opacity-40 pointer-events-none' : ''}`}>
         {/* Action Tools */}
-        <div className="flex flex-col gap-1.5">
+        <div className="flex sm:flex-col gap-1 sm:gap-1.5 shrink-0">
           <button
             onClick={() => setActiveTool('pencil')}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-bold text-xs transition ${
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 py-1.5 sm:px-3 sm:py-2.5 rounded-xl font-bold text-xs transition ${
               activeTool === 'pencil'
                 ? 'bg-blue-100 text-blue-700 shadow-sm'
                 : 'text-slate-700 hover:bg-slate-200/60'
             }`}
           >
-            <Pencil className="w-4 h-4 text-blue-600" />
-            Pencil
+            <Pencil className="w-4 h-4 text-blue-600 shrink-0" />
+            <span className="hidden sm:inline">Pencil</span>
           </button>
 
           <button
             onClick={() => setActiveTool('eraser')}
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-bold text-xs transition ${
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2.5 py-1.5 sm:px-3 sm:py-2.5 rounded-xl font-bold text-xs transition ${
               activeTool === 'eraser'
                 ? 'bg-blue-100 text-blue-700 shadow-sm'
                 : 'text-slate-700 hover:bg-slate-200/60'
             }`}
           >
-            <Eraser className="w-4 h-4 text-slate-700" />
-            Eraser
+            <Eraser className="w-4 h-4 text-slate-700 shrink-0" />
+            <span className="hidden sm:inline">Eraser</span>
           </button>
 
           <button
             onClick={handleUndo}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-bold text-xs text-slate-700 hover:bg-slate-200/60 transition"
+            className="flex items-center gap-1.5 sm:gap-2.5 px-2.5 py-1.5 sm:px-3 sm:py-2.5 rounded-xl font-bold text-xs text-slate-700 hover:bg-slate-200/60 transition"
           >
-            <Undo2 className="w-4 h-4 text-slate-700" />
-            Undo
+            <Undo2 className="w-4 h-4 text-slate-700 shrink-0" />
+            <span className="hidden sm:inline">Undo</span>
           </button>
 
           <button
             onClick={handleClear}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-bold text-xs text-slate-700 hover:bg-rose-50 hover:text-rose-600 transition"
+            className="flex items-center gap-1.5 sm:gap-2.5 px-2.5 py-1.5 sm:px-3 sm:py-2.5 rounded-xl font-bold text-xs text-slate-700 hover:bg-rose-50 hover:text-rose-600 transition"
           >
-            <Trash2 className="w-4 h-4" />
-            Clear
+            <Trash2 className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">Clear</span>
           </button>
         </div>
 
         {/* Divider */}
-        <hr className="border-slate-200" />
+        <hr className="hidden sm:block border-slate-200" />
+        <div className="h-6 w-[1px] bg-slate-200 sm:hidden shrink-0" />
 
         {/* Brush Size */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-2">
-            Brush Size
+        <div className="shrink-0">
+          <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 uppercase tracking-wider hidden sm:block mb-1 sm:mb-2">
+            Size
           </span>
-          <div className="flex items-center justify-around bg-white p-2 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-1.5 sm:justify-around bg-white p-1 sm:p-2 rounded-xl border border-slate-200">
             {BRUSH_SIZES.map((item) => (
               <button
                 key={item.size}
                 onClick={() => setBrushSize(item.size)}
-                className={`w-7 h-7 rounded-full flex items-center justify-center transition ${
+                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center transition ${
                   brushSize === item.size
                     ? 'ring-2 ring-blue-500 bg-blue-50'
                     : 'hover:bg-slate-100'
@@ -294,14 +295,15 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isDrawer, initialS
         </div>
 
         {/* Divider */}
-        <hr className="border-slate-200" />
+        <hr className="hidden sm:block border-slate-200" />
+        <div className="h-6 w-[1px] bg-slate-200 sm:hidden shrink-0" />
 
-        {/* Colors Palette (2 Columns x 5 Rows matching reference) */}
-        <div>
-          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-2">
+        {/* Colors Palette */}
+        <div className="shrink-0">
+          <span className="text-[10px] sm:text-[11px] font-bold text-slate-600 uppercase tracking-wider hidden sm:block mb-1 sm:mb-2">
             Colors
           </span>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex sm:grid sm:grid-cols-3 gap-1.5 sm:gap-2">
             {COLORS.map((c) => (
               <button
                 key={c}
@@ -309,7 +311,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isDrawer, initialS
                   setCurrentColor(c);
                   setActiveTool('pencil');
                 }}
-                className={`w-7 h-7 rounded-full transition transform hover:scale-110 border ${
+                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full transition transform hover:scale-110 border shrink-0 ${
                   activeTool === 'pencil' && currentColor === c
                     ? 'scale-110 border-white ring-2 ring-blue-500 shadow-md'
                     : 'border-slate-300'
@@ -323,7 +325,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ isDrawer, initialS
       </div>
 
       {/* Main Canvas Area */}
-      <div className="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden relative cursor-crosshair">
+      <div className="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden relative cursor-crosshair min-h-0">
         <canvas
           ref={canvasRef}
           onMouseDown={startDrawing}

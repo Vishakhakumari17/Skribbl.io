@@ -42,7 +42,7 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
   ];
 
   return (
-    <div className="w-80 h-full flex flex-col gap-3 p-3 bg-white border-l border-slate-200 shrink-0">
+    <div className="w-full h-full flex flex-col gap-2 p-2 sm:p-3 bg-white shrink-0 overflow-hidden">
       {/* 1. Word Blanks & Hints (Top Box matching reference image) */}
       <div className="p-3 bg-[#f8fafc] border border-slate-200/80 rounded-2xl flex items-center justify-between">
         <div>
