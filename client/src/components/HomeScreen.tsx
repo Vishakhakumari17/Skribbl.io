@@ -4,8 +4,18 @@ import { Play, Sparkles, Users, Eye } from 'lucide-react';
 
 const AVATARS = ['🦊', '🐱', '🐼', '🦁', '🐵', '🐸', '🦄', '🐙', '🚀', '⚡'];
 
+// Generate or retrieve persistent userToken from localStorage
+const getUserToken = (): string => {
+  let token = localStorage.getItem('skribbl_user_token');
+  if (!token) {
+    token = 'usr_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+    localStorage.setItem('skribbl_user_token', token);
+  }
+  return token;
+};
+
 export const HomeScreen: React.FC = () => {
-  const [playerName, setPlayerName] = useState('');
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem('skribbl_player_name') || '');
   const [roomCode, setRoomCode] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
 
@@ -21,10 +31,12 @@ export const HomeScreen: React.FC = () => {
   const handleCreateRoom = (e: React.FormEvent) => {
     e.preventDefault();
     if (!playerName.trim()) return;
+    localStorage.setItem('skribbl_player_name', playerName.trim());
 
     socket.emit('create_room', {
       playerName: playerName.trim(),
       avatar: selectedAvatar,
+      userToken: getUserToken(),
       settings: {
         maxPlayers: 8,
         rounds: 3,
@@ -38,22 +50,26 @@ export const HomeScreen: React.FC = () => {
   const handleJoinRoom = (e: React.FormEvent, asSpectator: boolean = false) => {
     e.preventDefault();
     if (!playerName.trim() || !roomCode.trim()) return;
+    localStorage.setItem('skribbl_player_name', playerName.trim());
 
     socket.emit('join_room', {
       roomId: roomCode.trim().toUpperCase(),
       playerName: playerName.trim(),
       avatar: asSpectator ? '👁️' : selectedAvatar,
-      asSpectator
+      asSpectator,
+      userToken: getUserToken()
     });
   };
 
   const handleQuickPlay = () => {
     if (!playerName.trim()) return;
+    localStorage.setItem('skribbl_player_name', playerName.trim());
 
     socket.emit('join_room', {
       roomId: 'RANDOM',
       playerName: playerName.trim(),
-      avatar: selectedAvatar
+      avatar: selectedAvatar,
+      userToken: getUserToken()
     });
   };
 

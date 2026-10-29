@@ -40,12 +40,12 @@ io.on('connection', (socket: Socket) => {
   console.log(`[Socket Connected] ID: ${socket.id}`);
 
   // Create room
-  socket.on('create_room', ({ playerName, avatar, settings }) => {
+  socket.on('create_room', ({ playerName, avatar, settings, userToken }) => {
     const room = roomManager.createRoom();
     if (settings) {
       room.updateSettings(settings);
     }
-    const player = room.addPlayer(socket.id, playerName || 'Player', avatar || '🦊');
+    const player = room.addPlayer(socket.id, playerName || 'Player', avatar || '🦊', false, userToken);
     socket.join(room.id);
     socketRoomMap.set(socket.id, room.id);
 
@@ -58,7 +58,7 @@ io.on('connection', (socket: Socket) => {
   });
 
   // Join room
-  socket.on('join_room', ({ roomId, playerName, avatar, asSpectator }) => {
+  socket.on('join_room', ({ roomId, playerName, avatar, asSpectator, userToken }) => {
     let room = roomManager.getRoom(roomId?.toUpperCase());
     
     // Auto join random public room if requested and no ID
@@ -79,7 +79,7 @@ io.on('connection', (socket: Socket) => {
       isSpectator = true;
     }
 
-    const player = room.addPlayer(socket.id, playerName || 'Player', avatar || '👁️', isSpectator);
+    const player = room.addPlayer(socket.id, playerName || 'Player', avatar || '👁️', isSpectator, userToken);
     socket.join(room.id);
     socketRoomMap.set(socket.id, room.id);
 
@@ -217,9 +217,8 @@ io.on('connection', (socket: Socket) => {
     });
   });
 
-  // Disconnect handler
-  socket.on('disconnect', () => {
-    console.log(`[Socket Disconnected] ID: ${socket.id}`);
+  // Explicit leave room (when user clicks "Leave Game" or "End Game")
+  socket.on('leave_room', () => {
     const roomId = socketRoomMap.get(socket.id);
     if (!roomId) return;
 
@@ -235,7 +234,7 @@ io.on('connection', (socket: Socket) => {
         if (player) {
           io.to(roomId).emit('chat_message', {
             id: Date.now().toString(),
-            text: `${player.name} left the room.`,
+            text: `${player.name} left the game.`,
             type: 'system',
             timestamp: Date.now()
           });
@@ -252,6 +251,50 @@ io.on('connection', (socket: Socket) => {
         room.broadcastState();
       }
     }
+  });
+
+  // Disconnect handler with grace period (handles accidental refresh / back button)
+  socket.on('disconnect', () => {
+    console.log(`[Socket Disconnected] ID: ${socket.id}`);
+    const roomId = socketRoomMap.get(socket.id);
+    if (!roomId) return;
+
+    const room = roomManager.getRoom(roomId);
+    if (!room) return;
+
+    // Grace period of 15 seconds to reconnect
+    setTimeout(() => {
+      // If the player has not reconnected with a new socket under their token/session
+      const stillInRoom = room.players.has(socket.id);
+      if (stillInRoom) {
+        socketRoomMap.delete(socket.id);
+        const player = room.players.get(socket.id);
+        const { remainingCount, newHostId } = room.removePlayer(socket.id);
+
+        if (remainingCount === 0) {
+          roomManager.deleteRoom(roomId);
+        } else {
+          if (player) {
+            io.to(roomId).emit('chat_message', {
+              id: Date.now().toString(),
+              text: `${player.name} disconnected.`,
+              type: 'system',
+              timestamp: Date.now()
+            });
+          }
+          if (newHostId) {
+            const newHost = room.players.get(newHostId);
+            io.to(roomId).emit('chat_message', {
+              id: Date.now().toString(),
+              text: `${newHost?.name} is now the host!`,
+              type: 'system',
+              timestamp: Date.now()
+            });
+          }
+          room.broadcastState();
+        }
+      }
+    }, 15000);
   });
 });
 

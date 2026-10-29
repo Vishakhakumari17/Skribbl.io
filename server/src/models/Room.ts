@@ -36,7 +36,26 @@ export class Room {
     this.io = io;
   }
 
-  public addPlayer(id: string, name: string, avatar: string, isSpectator: boolean = false): Player {
+  public addPlayer(id: string, name: string, avatar: string, isSpectator: boolean = false, userToken?: string): Player {
+    // Check if player with same userToken already exists (reconnection / refresh)
+    if (userToken) {
+      for (const [existingSocketId, existingPlayer] of this.players.entries()) {
+        if (existingPlayer.userToken === userToken) {
+          // Rebind existing player to new socket id
+          this.players.delete(existingSocketId);
+          existingPlayer.id = id;
+          if (existingPlayer.isHost) {
+            this.hostId = id;
+          }
+          if (this.drawerId === existingSocketId) {
+            this.drawerId = id;
+          }
+          this.players.set(id, existingPlayer);
+          return existingPlayer;
+        }
+      }
+    }
+
     const isFirstPlayer = this.players.size === 0;
     const player: Player = {
       id,
@@ -45,7 +64,8 @@ export class Room {
       score: 0,
       isHost: isFirstPlayer && !isSpectator,
       hasGuessedCorrectly: false,
-      isSpectator
+      isSpectator,
+      userToken
     };
 
     if (isFirstPlayer && !isSpectator) {

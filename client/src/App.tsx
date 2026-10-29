@@ -8,6 +8,7 @@ import { GameHeader } from './components/GameHeader';
 import { LobbyView } from './components/LobbyView';
 import { GameOverModal } from './components/GameOverModal';
 import { WordPickerModal } from './components/WordPickerModal';
+import { LogOut, Play, AlertTriangle } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
@@ -18,6 +19,75 @@ export const App: React.FC = () => {
   const [initialStrokes, setInitialStrokes] = useState<DrawStroke[]>([]);
   const [winnerData, setWinnerData] = useState<{ winner: Player | null; leaderboard: Player[] } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Leave / Pause / Confirmation Modal State
+  const [showLeaveModal, setShowLeaveModal] = useState<boolean>(false);
+
+  // Save session details to sessionStorage so refresh reconnects smoothly
+  useEffect(() => {
+    if (gameState && currentUser) {
+      sessionStorage.setItem('skribbl_active_room', gameState.roomId);
+      sessionStorage.setItem('skribbl_player_id', currentUser.id);
+    }
+  }, [gameState, currentUser]);
+
+  // Handle accidental reload / window close warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (gameState && gameState.phase !== 'GAME_OVER') {
+        e.preventDefault();
+        e.returnValue = 'You have an active game in progress! Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [gameState]);
+
+  // Handle browser back button: push state and intercept to show Resume/End modal
+  useEffect(() => {
+    if (gameState && gameState.phase !== 'GAME_OVER') {
+      window.history.pushState({ inGame: true }, '');
+
+      const handlePopState = () => {
+        // Prevent immediate navigation away, show friendly resume/leave modal
+        window.history.pushState({ inGame: true }, '');
+        setShowLeaveModal(true);
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, [gameState]);
+
+  // Auto-reconnect on refresh if room was active
+  useEffect(() => {
+    const savedRoom = sessionStorage.getItem('skribbl_active_room');
+    const savedName = localStorage.getItem('skribbl_player_name');
+    const userToken = localStorage.getItem('skribbl_user_token');
+
+    if (savedRoom && savedName && !gameState) {
+      socket.emit('join_room', {
+        roomId: savedRoom,
+        playerName: savedName,
+        userToken: userToken || undefined
+      });
+    }
+  }, []);
+
+  const handleConfirmLeave = () => {
+    socket.emit('leave_room');
+    sessionStorage.removeItem('skribbl_active_room');
+    sessionStorage.removeItem('skribbl_player_id');
+    setCurrentUser(null);
+    setGameState(null);
+    setShowLeaveModal(false);
+  };
+
+  const handleResumeGame = () => {
+    setShowLeaveModal(false);
+  };
 
   useEffect(() => {
     socket.on('room_created', ({ player, state }: { player: Player; state: GameState }) => {
@@ -161,6 +231,42 @@ export const App: React.FC = () => {
           leaderboard={winnerData.leaderboard}
           isHost={isHost}
         />
+      )}
+
+      {/* Accidental Back Button / Exit Game Popup Modal */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#0e1d38] border-2 border-blue-900/60 rounded-[32px] p-7 shadow-[0_20px_50px_rgba(0,0,0,0.6)] text-white text-center flex flex-col items-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 shadow-inner">
+              <AlertTriangle className="w-7 h-7" />
+            </div>
+
+            <h3 className="text-2xl font-black text-white font-fun mb-2">
+              Game in Progress!
+            </h3>
+            <p className="text-sm font-medium text-slate-300 mb-6">
+              You accidentally pressed back or tried to leave. Do you want to resume the match or leave the game?
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <button
+                onClick={handleResumeGame}
+                className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-[0_8px_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer border border-emerald-300/30"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                Resume Game
+              </button>
+
+              <button
+                onClick={handleConfirmLeave}
+                className="flex-1 py-3.5 px-4 rounded-2xl bg-rose-600/90 hover:bg-rose-600 text-white font-black text-sm uppercase tracking-wider shadow-[0_8px_20px_rgba(225,29,72,0.3)] flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer border border-rose-400/30"
+              >
+                <LogOut className="w-4 h-4" />
+                End / Leave
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

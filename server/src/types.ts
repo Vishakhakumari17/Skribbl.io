@@ -7,6 +7,7 @@ export interface Player {
   hasGuessedCorrectly: boolean;
   scoreGainedThisRound?: number;
   isSpectator?: boolean;
+  userToken?: string;
 }
 
 export type GamePhase = 
